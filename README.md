@@ -7,7 +7,7 @@ The raw data for Experiment 2 are saved out as a csv file: "dataframes/exp2_all_
 
 Processing and analyses of the data are coded as follows:
 - processing.ipnyb: experimental events are processed to only include events used in the analyses of both experiments. Also, generates the similarity matrices used for semantic clsutering analyses.
-- Recal_performance: analyses of recall performance (correct and false recall rates) for experiments 1 and 2.
+- recall_performance: analyses of recall performance (correct and false recall rates) for experiments 1 and 2.
 - pybeh_pd.py, pybeh_pd_min.py and pybeh_copy.py: contain the functions of semantic, temporal and subjective clustering analyses (semantic-CRP, lag-CRP, subjective lag-CRP, semantic, temporal and subjective clustering scores; see figures 3 and 4 of the paper).  
 - Exp1_beh_analyses: analyses of semantic, temporal and subjective clustering in Experiment 1. These analyses reference functions in pybeh_pd.py, pybeh_pd_min.py and pybeh_copy.py.
 - Exp2_beh_analyses: analyses of semantic, temporal, and subjective clustering in Experiment 2, as well as the code for the intrusion recency analysis (reported in Figure 5 of the manuscript). These analyses reference functions in pybeh_pd.py, pybeh_pd_min.py and pybeh_copy.py.
