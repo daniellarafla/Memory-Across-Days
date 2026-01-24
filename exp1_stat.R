@@ -2,6 +2,11 @@ library(tidyverse)
 library(lme4)
 library(lmerTest)
 library(stats)
+library(ggplot2)
+library(dplyr)
+library(tibble)
+library(broom.mixed)
+library(ggpubr)
 
 vffr_data <- read_csv("dataframes/exp1_stat_data.csv")
 
@@ -13,9 +18,9 @@ vffr_data <- vffr_data %>%
     sub_mean_recs = mean(recs),
     rel_recs = recs - sub_mean_recs,
     sub_mean_sem = mean(sem),
-    rel_sem = recs - sub_mean_sem,
+    rel_sem = sem - sub_mean_sem,
     sub_mean_lag = mean(lag),
-    rel_lag = recs - sub_mean_lag
+    rel_lag = lag - sub_mean_lag
   ) %>% ungroup %>% mutate(
     rel_recs_scale = as.vector(scale(rel_recs)),
     sub_mean_recs_scale = as.vector(scale(sub_mean_recs)),
@@ -31,11 +36,14 @@ vffr_data <- vffr_data %>%
 vffr_data$session_fct <- factor(vffr_data$session)
 
 
-# Recall Performance
+### Recall Performance ###
 
 # corr recs as a function of sessions
 m_correct_recs_lin <- lmer(correct_recs ~ session_cent + (session_cent | subject), data = vffr_data)
-summary(m_correct_recs_lin)
+pars <- getME(m_correct_recs_lin,"theta")
+m_correct_recs_lin.restart <- update(m_correct_recs_lin, start=pars)
+summary(m_correct_recs_lin.restart)
+
 
 # recs as a function of sessions
 m_recs_lin <- lmer(recs ~ session_cent + (session_cent | subject), data = vffr_data)
@@ -46,23 +54,24 @@ m_intr_lin <- lmer(intr ~ session_cent + (session_cent | subject), data = vffr_d
 summary(m_intr_lin)
 
 
-
-
-# Semantic and Temporal Clustering
+### Semantic and Temporal Clustering ###
 
 # anova lag across sessions
 m_lag <- lmer(lag ~ session_fct + (1 | subject), data = vffr_data)
 summary(m_lag)
 anova(m_lag)
 
+
 # anova sem across sessions
 m_sem <- lmer(sem ~ session_fct + (1 | subject), data = vffr_data)
 summary(m_sem)
 anova(m_sem)
 
-# sem as a function of session
+
+# sem as a function of sess
 m_sem_lin <- lmer(sem ~ session_cent + (session_cent | subject), data = vffr_data)
 summary(m_sem_lin)
+
 
 # sem as a function of corr recs (relative and mean) and session
 m_sem_lin_recs <- lmer(sem ~ session_cent  + rel_corr_recs_scale + sub_mean_corr_recs_scale + 
@@ -71,12 +80,17 @@ m_sem_lin_recs_ns1 <- lmer(sem ~ session_cent  + rel_corr_recs_scale + sub_mean_
                               (session_cent + rel_corr_recs_scale || subject), data = vffr_data)
 m_sem_lin_recs_ns2 <- lmer(sem ~ session_cent + rel_corr_recs_scale + sub_mean_corr_recs_scale +
                               (session_cent || subject), data = vffr_data)
+
 summary(m_sem_lin_recs_ns2)
 
 
+### Subjective Clustering (Percentile Score)
 
+# ANOVA
+m_subj <- lmer(subj ~ session_fct + (1 | subject), data = vffr_data)
+summary(m_subj)
+anova(m_subj)
 
-# Subjective Clustering
 
 # subj as a function of session
 m_subj_lin <- lmer(subj ~ session_cent + (session_cent | subject), data = vffr_data)
@@ -89,43 +103,75 @@ m_subj_lin_recs <- lmer(subj ~ session_cent + rel_recs_scale + sub_mean_recs_sca
 m_subj_lin_recs_ns1 <- lmer(subj ~ session_cent + rel_recs_scale + sub_mean_recs_scale + 
                               (session_cent + rel_recs_scale || subject), data = vffr_data)
 m_subj_lin_recs_ns2 <- lmer(subj ~ session_cent + rel_recs_scale + sub_mean_recs_scale + 
-                              (session_cent || subject), data = vffr_data)
-m_subj_lin_recs_ns3 <- lmer(subj ~ session_cent + rel_recs_scale + sub_mean_recs_scale + 
                               (1 | subject), data = vffr_data)
-summary(m_subj_lin_recs_ns3)
+summary(m_subj_lin_recs_ns2)
 
 
-# subj as a function of sem (relative and mean) (M1)
+# subj as a function of sem (relative and mean)
 m_subj_sem <- lmer(subj ~ rel_sem_scale + sub_mean_sem_scale + 
                      (rel_sem_scale | subject), data = vffr_data)
-m_subj_sem_ns1 <- lmer(subj ~ rel_sem_scale + sub_mean_sem_scale + 
-                         (rel_sem_scale || subject), data = vffr_data)
-m_subj_sem_ns2 <- lmer(subj ~ rel_sem_scale + sub_mean_sem_scale + 
-                         (1 | subject), data = vffr_data)
-summary(m_subj_sem_ns2)
+summary(m_subj_sem)
 
 
-# subj as a function of session and sem(relative and mean) (M2)
-m_subj_lin_sem <- lmer(subj ~ session_cent + rel_sem_scale + sub_mean_sem_scale + 
-                         (session_cent + rel_sem_scale | subject), data = vffr_data)
-
-m_subj_lin_sem_ns1 <- lmer(subj ~ session_cent + rel_sem_scale + sub_mean_sem_scale + 
-                             (session_cent + rel_sem_scale || subject), data = vffr_data)
-m_subj_lin_sem_ns2 <- lmer(subj ~ session_cent + rel_sem_scale + sub_mean_sem_scale + 
-                             (1 | subject), data = vffr_data)
-summary(m_subj_lin_sem_ns2)
-
-
-
-# subj as a function of sess and temp (rel and mean) (M2)
-m_subj_lag_sess <- lmer(subj ~ session_cent + rel_lag_scale + sub_mean_lag_scale + 
-                          (session_cent + rel_lag_scale | subject), 
+# subj as a function of temp (rel and mean) 
+m_subj_lag_sess <- lmer(subj ~ rel_lag_scale + sub_mean_lag_scale + 
+                          (rel_lag_scale | subject), 
                         data = vffr_data)
-m_subj_lag_sess_ns1 <- lmer(subj ~ session_cent + rel_lag_scale + sub_mean_lag_scale + 
-                              (session_cent + rel_lag_scale || subject), 
+summary(m_subj_lag_sess)
+
+m_subj_lag_sess_ns1 <- lmer(subj ~ rel_lag_scale + sub_mean_lag_scale + 
+                              (rel_lag_scale || subject), 
                             data = vffr_data)
-m_subj_lag_sess_ns2 <- lmer(subj ~ session_cent + rel_lag_scale + sub_mean_lag_scale + 
-                              (1 | subject), 
-                            data = vffr_data)
-summary(m_subj_lag_sess_ns2)
+summary(m_subj_lag_sess_ns1)
+
+
+
+### Subjective clustering using (PF) ###
+
+# ANOVA
+m_subj_PF <- lmer(subj_PF ~ session_fct + (1 | subject), data = vffr_data)
+summary(m_subj_PF)
+anova(m_subj_PF)
+
+# subj (PF) as a function of session
+m_subj_PF_lin <- lmer(subj_PF ~ session_cent + (session_cent | subject), data = vffr_data)
+summary(m_subj_PF_lin)
+
+
+# subj (PF) as a function of recs (relative and mean) and session
+m_subj_PF_lin_recs <- lmer(subj_PF ~ session_cent + rel_recs_scale + sub_mean_recs_scale + 
+                          (session_cent + rel_recs_scale | subject), data = vffr_data)
+summary(m_subj_PF_lin_recs)
+m_subj_PF_lin_recs_ns1 <- lmer(subj_PF ~ session_cent + rel_recs_scale + sub_mean_recs_scale + 
+                              (session_cent + rel_recs_scale || subject), data = vffr_data)
+summary(m_subj_PF_lin_recs_ns1)
+
+
+
+# subj (PF) as a function of sem (relative and mean)
+m_subj_PF_sem <- lmer(subj_PF ~ rel_sem_scale + sub_mean_sem_scale + 
+                     (rel_sem_scale | subject), data = vffr_data)
+summary(m_subj_PF_sem)
+m_subj_PF_sem_ns1 <- lmer(subj_PF ~ rel_sem_scale + sub_mean_sem_scale + 
+                         (rel_sem_scale || subject), data = vffr_data)
+summary(m_subj_PF_sem_ns1)
+m_subj_PF_sem_ns2 <- lmer(subj_PF ~ rel_sem_scale + sub_mean_sem_scale + 
+                            (1 | subject), data = vffr_data)
+summary(m_subj_PF_sem_ns2)
+
+
+# subj as a function temp (relative and mean)
+m_subj_PF_lin_lag <- lmer(subj_PF ~ rel_lag_scale + sub_mean_lag_scale + 
+                            (rel_lag_scale | subject), data = vffr_data)
+summary(m_subj_PF_lin_lag)
+m_subj_PF_lin_lag_ns1 <- lmer(subj_PF ~ rel_lag_scale + sub_mean_lag_scale + 
+                            (rel_lag_scale || subject), data = vffr_data)
+summary(m_subj_PF_lin_lag_ns1)
+m_subj_PF_lin_lag_ns2 <- lmer(subj_PF ~ rel_lag_scale + sub_mean_lag_scale + 
+                                (1 | subject), data = vffr_data)
+summary(m_subj_PF_lin_lag_ns2)
+
+
+
+
 
