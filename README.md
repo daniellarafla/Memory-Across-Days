@@ -2,8 +2,9 @@
 Memory Across Days analyses code. 
 
 
+The raw data for Experiment 1 are saved as a csv file: "dataframes/exp1_all_evs.csv"; because the file is greater than 100MB, it is stored with Git LFS, so it cannot be displayed on GitHub but can be downloaded. (These data can also be found on https://openneuro.org/datasets/ds004395/versions/2.0.0)
 The raw data for Experiment 2 are saved out as a csv file: "dataframes/exp2_all_evs.csv" and located in the dataframes folder. 
-(The raw data for Experiment 1 can be found on https://openneuro.org/datasets/ds004395/versions/2.0.0)
+
 
 Processing and analyses of the data are coded as follows:
 - processing.ipnyb: experimental events are processed to only include events used in the analyses of both experiments. Also, generates the similarity matrices used for semantic clsutering analyses.
