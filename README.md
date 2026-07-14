@@ -1,5 +1,5 @@
 # Memory-Across-Days
-Memory Across Days raw data 
+Memory Across Days raw data: 
 
 
 - The raw data for Experiment 1 are saved as a csv file in the 'dataframes' folder: "dataframes/exp1_all_evs.csv"; because the file is greater than 100MB, it is stored with Git LFS, so it cannot be displayed on GitHub but can be downloaded. (These data can also be found on https://openneuro.org/datasets/ds004395/versions/2.0.0)
